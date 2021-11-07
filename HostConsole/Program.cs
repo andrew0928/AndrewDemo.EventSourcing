@@ -1,4 +1,7 @@
-﻿namespace HostConsole
+﻿using System;
+using HostConsole.BankAccounts;
+
+namespace HostConsole
 {
     class Program
     {

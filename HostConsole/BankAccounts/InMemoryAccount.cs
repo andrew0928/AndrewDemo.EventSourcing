@@ -3,61 +3,22 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
 
-namespace HostConsole
+namespace HostConsole.BankAccounts
 {
     public class InMemoryAccount : IBankAccount
     {
         public string Name;
 
-        private enum TransCommandTypeEnum
-        {
-            REQUIRE = 1,
-            COMMIT = 3,
-            CANCEL = 4,
+        public (string type, string id)[] AccountIdentities;
+        // owner type:  consumer / service / payment / client
+        // owner id:
 
-            UNKNOWN = 9999
-        }
 
-        private enum RecordStateEnum
-        {
-            InProc = 1,
-            Completed = 2,
-            Cancelled = 3
-        }
-
-        private enum RecordTypeEnum
-        {
-            DEPOSIT = 1,
-            WITHDRAW = 2
-        }
-
-        private class TransCommand
-        {
-            public long SN;
-            public long FromSN;
-            public long TransID;
-            public TransCommandTypeEnum Command = TransCommandTypeEnum.UNKNOWN;
-            public decimal Amount;
-            public DateTime CommandTime;
-            public string Notes;
-        }
-
-        private class RecordItem
-        {
-            public long SN;
-            public long TransID;
-            public decimal DepositAmount;
-            public decimal WithdrawAmount;
-            public RecordStateEnum State;
-            public string Notes;
-            public DateTime CreateTime;
-            public DateTime UpdateTime;
-        }
 
 
         #region event store part
         private long _seed_for_SN = 0;
-        private List<TransCommand> _event_store = new List<TransCommand>();
+        private List<BankAccountCommand> _event_store = new List<BankAccountCommand>();
         #endregion
 
         #region projection part
@@ -71,12 +32,12 @@ namespace HostConsole
 
         public long TransCancel(long transID, long fromSN = 0)
         {
-            var cmd = new TransCommand()
+            var cmd = new BankAccountCommand()
             {
                 SN = Interlocked.Increment(ref this._seed_for_SN),
                 FromSN = fromSN,
                 TransID = transID,
-                Command = TransCommandTypeEnum.CANCEL,
+                Command = BankAccountCommandTypeEnum.CANCEL,
                 CommandTime = DateTime.Now,
                 Notes = "--"
             };
@@ -88,12 +49,12 @@ namespace HostConsole
 
         public long TransCommit(long transID, long fromSN = 0)
         {
-            var cmd = new TransCommand()
+            var cmd = new BankAccountCommand()
             {
                 SN = Interlocked.Increment(ref this._seed_for_SN),
                 FromSN = fromSN,
                 TransID = transID,
-                Command = TransCommandTypeEnum.COMMIT,
+                Command = BankAccountCommandTypeEnum.COMMIT,
                 CommandTime = DateTime.Now,
                 Notes = "--"
             };
@@ -103,17 +64,17 @@ namespace HostConsole
             return cmd.SN;
         }
 
-        public long TransRequire(long transID, decimal amount)
+        public long TransRequire(long transID, decimal amount, string notes = null)
         {
-            var cmd = new TransCommand()
+            var cmd = new BankAccountCommand()
             {
                 SN = Interlocked.Increment(ref this._seed_for_SN),
                 FromSN = 0,
                 TransID = transID,
                 Amount = amount,
-                Command = TransCommandTypeEnum.REQUIRE,
+                Command = BankAccountCommandTypeEnum.REQUIRE,
                 CommandTime = DateTime.Now,
-                Notes = "--"
+                Notes = notes
             };
 
             if (this.TransCommandHandler(cmd) == false) throw new InvalidOperationException();
@@ -129,11 +90,13 @@ namespace HostConsole
         }
 
 
-        private bool TransCommandHandler(TransCommand cmd)
+        private bool TransCommandHandler(BankAccountCommand cmd)
         {
+            // todo: 如果存在任一筆 trans id 相同的 record, 但是狀態不是 InProc, 代表交易出現問題。
+
             switch (cmd.Command)
             {
-                case TransCommandTypeEnum.REQUIRE:
+                case BankAccountCommandTypeEnum.REQUIRE:
                     {
                         var rec = new RecordItem()
                         {
@@ -141,9 +104,9 @@ namespace HostConsole
                             WithdrawAmount = (cmd.Amount > 0) ? (0) : (0 - cmd.Amount),
                             CreateTime = cmd.CommandTime,
                             UpdateTime = cmd.CommandTime,
-                            Notes = cmd.Notes,
+                            Notes = cmd.Notes ?? "--",
                             SN = cmd.SN,
-                            State = RecordStateEnum.InProc,
+                            State = BankAccountRecordStateEnum.InProc,
                             TransID = cmd.TransID
                         };
 
@@ -157,7 +120,7 @@ namespace HostConsole
                     break;
 
 
-                case TransCommandTypeEnum.COMMIT:
+                case BankAccountCommandTypeEnum.COMMIT:
                     {
                         this._event_store.Add(cmd);
 
@@ -166,7 +129,7 @@ namespace HostConsole
                             if (cmd.FromSN > 0 && cmd.FromSN != rec.SN) throw new InvalidOperationException();
                             if (cmd.TransID != rec.TransID) throw new InvalidProgramException();
 
-                            rec.State = RecordStateEnum.Completed;
+                            rec.State = BankAccountRecordStateEnum.Completed;
                             rec.Notes = cmd.Notes;
                             rec.SN = cmd.SN;
                             rec.UpdateTime = cmd.CommandTime;
@@ -178,7 +141,7 @@ namespace HostConsole
                     }
                     break;
 
-                case TransCommandTypeEnum.CANCEL:
+                case BankAccountCommandTypeEnum.CANCEL:
                     {
                         this._event_store.Add(cmd);
 
@@ -187,7 +150,7 @@ namespace HostConsole
                             if (cmd.FromSN > 0 && cmd.FromSN != rec.SN) throw new InvalidOperationException();
                             if (cmd.TransID != rec.TransID) throw new InvalidProgramException();
 
-                            rec.State = RecordStateEnum.Cancelled;
+                            rec.State = BankAccountRecordStateEnum.Cancelled;
                             rec.Notes = cmd.Notes;
                             rec.SN = cmd.SN;
                             rec.UpdateTime = cmd.CommandTime;
