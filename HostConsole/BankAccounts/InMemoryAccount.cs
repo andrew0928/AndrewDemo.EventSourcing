@@ -64,7 +64,7 @@ namespace HostConsole.BankAccounts
             return cmd.SN;
         }
 
-        public long TransRequire(long transID, decimal amount, string notes = null)
+        public long TransIntent(long transID, decimal amount, string notes = null)
         {
             var cmd = new BankAccountCommand()
             {
@@ -72,7 +72,7 @@ namespace HostConsole.BankAccounts
                 FromSN = 0,
                 TransID = transID,
                 Amount = amount,
-                Command = BankAccountCommandTypeEnum.REQUIRE,
+                Command = BankAccountCommandTypeEnum.INTENT,
                 CommandTime = DateTime.Now,
                 Notes = notes
             };
@@ -96,7 +96,7 @@ namespace HostConsole.BankAccounts
 
             switch (cmd.Command)
             {
-                case BankAccountCommandTypeEnum.REQUIRE:
+                case BankAccountCommandTypeEnum.INTENT:
                     {
                         var rec = new RecordItem()
                         {

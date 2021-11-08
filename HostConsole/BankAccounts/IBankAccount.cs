@@ -4,7 +4,7 @@ namespace HostConsole.BankAccounts
 {
     interface IBankAccount
     {
-        long TransRequire(long transID, decimal amount, string notes = null); // 對於這個帳戶的操作，正數代表轉帳進這個戶頭
+        long TransIntent(long transID, decimal amount, string notes = null); // 對於這個帳戶的操作，正數代表轉帳進這個戶頭
         long TransCommit(long transID, long fromSN = 0);
         long TransCancel(long transID, long fromSN = 0);
 
@@ -13,7 +13,7 @@ namespace HostConsole.BankAccounts
 
     internal enum BankAccountCommandTypeEnum
     {
-        REQUIRE = 1,
+        INTENT = 1,
         COMMIT = 3,
         CANCEL = 4,
 

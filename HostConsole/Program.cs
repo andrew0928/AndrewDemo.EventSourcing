@@ -19,15 +19,15 @@ namespace HostConsole
             var acc3 = new InMemoryAccount() { Name = "jolin" };
 
             // acc1 - deposit $5000
-            acc1.TransRequire(100, 5000);
+            acc1.TransIntent(100, 5000);
             acc1.TransCommit(100);
 
             // step 1, acc1 withdraw $3000, transfer to acc2 deposit $3000
             bool step1_result = false;
             try
             {
-                acc1.TransRequire(200, -3000);
-                acc2.TransRequire(200, 3000);
+                acc1.TransIntent(200, -3000);
+                acc2.TransIntent(200, 3000);
                 acc1.TransCommit(200);
                 acc2.TransCommit(200);
                 step1_result = true;
@@ -45,8 +45,8 @@ namespace HostConsole
             bool step2_result = false;
             try
             {
-                acc1.TransRequire(300, -2500);
-                acc3.TransRequire(300, 2500);
+                acc1.TransIntent(300, -2500);
+                acc3.TransIntent(300, 2500);
                 acc1.TransCommit(300);
                 acc3.TransCommit(300);
                 step2_result = true;
@@ -63,8 +63,8 @@ namespace HostConsole
                 // rollback step 1 (in new transaction)
                 try
                 {
-                    acc1.TransRequire(400, 3000);
-                    acc2.TransRequire(400, -3000);
+                    acc1.TransIntent(400, 3000);
+                    acc2.TransIntent(400, -3000);
                     acc1.TransCommit(400);
                     acc2.TransCommit(400);
                 }
@@ -83,17 +83,17 @@ namespace HostConsole
             var acc3 = new InMemoryAccount() { Name = "jolin" };
 
             // acc1 - deposit $5000
-            acc1.TransRequire(100, 5000);
+            acc1.TransIntent(100, 5000);
             acc1.TransCommit(100);
 
             try
             {
                 // try transfer $3000 from acc1 to acc2, $2500 from acc1 to acc3, must in one transaction
-                acc1.TransRequire(200, -3000);
-                acc2.TransRequire(200, 3000);
+                acc1.TransIntent(200, -3000);
+                acc2.TransIntent(200, 3000);
 
-                acc1.TransRequire(200, -2500);
-                acc3.TransRequire(200, 2500);
+                acc1.TransIntent(200, -2500);
+                acc3.TransIntent(200, 2500);
 
 
                 acc1.TransCommit(200);
@@ -114,9 +114,9 @@ namespace HostConsole
         {
             var acc = new InMemoryAccount();
 
-            acc.TransRequire(100, 1000);
-            acc.TransRequire(200, 5000);
-            acc.TransRequire(300, 1000);
+            acc.TransIntent(100, 1000);
+            acc.TransIntent(200, 5000);
+            acc.TransIntent(300, 1000);
 
             acc.TransCommit(200);
             acc.TransCancel(300);
